@@ -1081,41 +1081,70 @@
         }
 
         function calculateProjections(items, years, scenario = selectedScenario) {
-            let totalAssets = 0;
-            let totalDebts = 0;
+            // Start with current asset and debt values
+            let currentAssets = items.reduce((sum, item) => sum + (item.assetValue || 0), 0);
+            let totalDebtPayments = 0;
+            let projectedDebts = 0;
 
+            // Calculate total annual debt payments
+            let annualDebtPayment = 0;
             items.forEach(item => {
-                let assetValue = item.assetValue || 0;
-                let debtValue = item.debtValue || 0;
+                if (item.debtValue > 0 && item.debtCategory && CATEGORIES[item.debtCategory]) {
+                    const annualRate = Math.abs(CATEGORIES[item.debtCategory][scenario]);
+                    const payoffYears = item.debtPayoffYears;
 
-                // Project asset growth with compounding
-                if (assetValue > 0 && item.assetCategory && CATEGORIES[item.assetCategory]) {
-                    const rate = CATEGORIES[item.assetCategory][scenario];
-                    assetValue = assetValue * Math.pow(1 + rate, years);
+                    if (payoffYears && payoffYears > 0) {
+                        const monthlyRate = annualRate / 12;
+                        const totalMonths = payoffYears * 12;
+                        const monthlyPayment = item.debtValue * (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) /
+                                               (Math.pow(1 + monthlyRate, totalMonths) - 1);
+                        annualDebtPayment += monthlyPayment * 12;
+                    } else {
+                        // Interest-only payment
+                        annualDebtPayment += item.debtValue * annualRate;
+                    }
                 }
+            });
 
-                // Project debt with proper amortization schedule
+            // Project year by year to account for debt payments reducing asset pool
+            let assetsAfterGrowth = currentAssets;
+            for (let year = 0; year < years; year++) {
+                // Calculate weighted average growth rate for all assets
+                let totalGrowth = 0;
+                items.forEach(item => {
+                    if (item.assetValue > 0 && item.assetCategory && CATEGORIES[item.assetCategory]) {
+                        const rate = CATEGORIES[item.assetCategory][scenario];
+                        const assetPortion = item.assetValue / currentAssets;
+                        totalGrowth += assetsAfterGrowth * assetPortion * rate;
+                    }
+                });
+
+                // Apply growth and subtract debt payments
+                assetsAfterGrowth += totalGrowth - annualDebtPayment;
+                totalDebtPayments += annualDebtPayment;
+            }
+
+            // Calculate remaining debt balances
+            items.forEach(item => {
+                let debtValue = item.debtValue || 0;
                 if (debtValue > 0 && item.debtCategory && CATEGORIES[item.debtCategory]) {
                     const annualRate = Math.abs(CATEGORIES[item.debtCategory][scenario]);
                     const payoffYears = item.debtPayoffYears;
 
                     if (payoffYears && payoffYears > 0) {
-                        // Use amortization schedule to calculate remaining balance
                         debtValue = calculateLoanBalance(debtValue, annualRate, payoffYears, years);
                     } else {
-                        // No payoff timeline - debt grows with interest only (worst case)
+                        // No payoff timeline - debt grows with interest only
                         debtValue = debtValue * Math.pow(1 + annualRate, years);
                     }
                 }
-
-                totalAssets += assetValue;
-                totalDebts += debtValue;
+                projectedDebts += debtValue;
             });
 
             return {
-                assets: totalAssets,
-                debts: totalDebts,
-                netWorth: totalAssets - totalDebts
+                assets: Math.max(0, assetsAfterGrowth), // Can't go negative
+                debts: projectedDebts,
+                netWorth: Math.max(0, assetsAfterGrowth) - projectedDebts
             };
         }
 
