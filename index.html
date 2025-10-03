@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analysis Tool</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .form-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e6ed;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        .selector-section {
+            margin: 20px;
+            text-align: center;
+        }
+
+        .selector-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: inline-flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .selector-btn {
+            padding: 8px 16px;
+            background: white;
+            color: #34495e;
+            border: 2px solid #e0e6ed;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .selector-btn:hover {
+            border-color: #3498db;
+            background: #ecf0f1;
+        }
+
+        .selector-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .visualization-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .percentage {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .summary-card.assets .value { color: #27ae60; }
+        .summary-card.debts .value { color: #e74c3c; }
+        .summary-card.net .value { color: #3498db; }
+
+        .items-list {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .items-list h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            transition: background 0.2s;
+        }
+
+        .item:hover {
+            background: #f8f9fa;
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .item-type {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            text-transform: capitalize;
+        }
+
+        .item-values {
+            text-align: right;
+        }
+
+        .item-value {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .item-value.positive { color: #27ae60; }
+        .item-value.negative { color: #e74c3c; }
+
+        .item-tags {
+            margin-top: 5px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #ecf0f1;
+            color: #2c3e50;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 5px;
+            margin-bottom: 2px;
+        }
+
+        .filter-tag {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .filter-tag:hover {
+            background: #2980b9;
+        }
+
+        .filter-tag.active {
+            background: #27ae60;
+        }
+
+        .filter-section-standalone {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .filter-section-standalone h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin: -10px;
+        }
+
+        .collapse-icon {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+            color: #7f8c8d;
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        .settings-category {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .settings-category h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .settings-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .settings-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-input-group label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 4px;
+        }
+
+        .settings-input-group input {
+            padding: 8px;
+            border: 2px solid #e0e6ed;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .tag-breakdown-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .tag-breakdown-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .breakdown-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .breakdown-column h3 {
+            color: #34495e;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+        }
+
+        .breakdown-item.asset {
+            border-left-color: #27ae60;
+        }
+
+        .breakdown-item.debt {
+            border-left-color: #e74c3c;
+        }
+
+        .breakdown-tag {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .breakdown-values {
+            text-align: right;
+        }
+
+        .breakdown-amount {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .breakdown-amount.asset {
+            color: #27ae60;
+        }
+
+        .breakdown-amount.debt {
+            color: #e74c3c;
+        }
+
+        .breakdown-percentage {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        .breakdown-networth-percentage {
+            font-size: 11px;
+            color: #34495e;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .no-tags-message {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .breakdown-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .edit-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+
+        .edit-btn:hover {
+            background: #e67e22;
+        }
+
+        .edit-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 2px solid #e9ecef;
+        }
+
+        .edit-form input {
+            margin-bottom: 10px;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .save-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .cancel-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        #sankeyChart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .sankey-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sankey-node:hover {
+            opacity: 0.8;
+        }
+
+        .sankey-link {
+            fill: none;
+            stroke-opacity: 0.6;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sankey-link:hover {
+            stroke-opacity: 0.8;
+        }
+
+        .sankey-node-label {
+            font-size: 11px;
+            font-weight: 600;
+            fill: #2c3e50;
+            pointer-events: none;
+        }
+
+        .sankey-node-value {
+            font-size: 10px;
+            font-weight: 500;
+            fill: #34495e;
+            pointer-events: none;
+        }
+
+        .sankey-external-label {
+            font-size: 11px;
+            font-weight: 600;
+            fill: #2c3e50;
+            pointer-events: none;
+        }
+
+        .sankey-external-value {
+            font-size: 10px;
+            font-weight: 500;
+            fill: #7f8c8d;
+            pointer-events: none;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Financial Analysis Tool</h1>
+            <p>Track your assets and debts with visual insights</p>
+        </div>
+
+        <div class="selector-section">
+            <div class="selector-label">Scenario:</div>
+            <div class="button-group">
+                <button class="selector-btn" onclick="setScenario('pessimistic')">Pessimistic</button>
+                <button class="selector-btn active" onclick="setScenario('neutral')">Neutral</button>
+                <button class="selector-btn" onclick="setScenario('optimistic')">Optimistic</button>
+            </div>
+
+            <div class="selector-label">Projection Timeline:</div>
+            <div class="button-group">
+                <button class="selector-btn active" onclick="setProjectionInterval(0)">Current</button>
+                <button class="selector-btn" onclick="setProjectionInterval(0.5)">6 Months</button>
+                <button class="selector-btn" onclick="setProjectionInterval(1)">1 Year</button>
+                <button class="selector-btn" onclick="setProjectionInterval(2)">2 Years</button>
+                <button class="selector-btn" onclick="setProjectionInterval(5)">5 Years</button>
+                <button class="selector-btn" onclick="setProjectionInterval(10)">10 Years</button>
+                <button class="selector-btn" onclick="setProjectionInterval(15)">15 Years</button>
+                <button class="selector-btn" onclick="setProjectionInterval(20)">20 Years</button>
+                <button class="selector-btn" onclick="setProjectionInterval(30)">30 Years</button>
+            </div>
+        </div>
+
+        <div class="summary-section">
+            <div class="summary-card assets">
+                <h3>Total Assets</h3>
+                <div class="value" id="totalAssets">$0</div>
+                <div class="percentage" id="assetsProjection"></div>
+            </div>
+            <div class="summary-card debts">
+                <h3>Total Debts</h3>
+                <div class="value" id="totalDebts">$0</div>
+                <div class="percentage" id="debtsPercentage"></div>
+                <div class="percentage" id="debtsCost"></div>
+            </div>
+            <div class="summary-card net">
+                <h3>Net Worth</h3>
+                <div class="value" id="netWorth">$0</div>
+                <div class="percentage" id="netWorthPercentage"></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2>Add Financial Item</h2>
+                <form id="financialForm">
+                    <div class="form-group">
+                        <label for="itemName">Item Name</label>
+                        <input type="text" id="itemName" placeholder="e.g., House, Car, Credit Card" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assetValue">Asset Value ($)</label>
+                        <input type="number" id="assetValue" placeholder="0" min="0" step="0.01">
+                        <small style="color: #7f8c8d; font-size: 12px;">Leave as 0 if this item has no asset value</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assetCategory">Asset Category</label>
+                        <select id="assetCategory">
+                            <option value="">No asset (leave blank if 0)</option>
+                            <option value="Cash & Savings">Cash & Savings</option>
+                            <option value="Investments">Investments</option>
+                            <option value="Stocks">Stocks</option>
+                            <option value="Bonds">Bonds</option>
+                            <option value="Retirement Accounts">Retirement Accounts</option>
+                            <option value="Real Estate">Real Estate</option>
+                            <option value="Short Term Rental">Short Term Rental</option>
+                            <option value="Cryptocurrency">Cryptocurrency</option>
+                            <option value="Vehicles">Vehicles</option>
+                            <option value="Personal Property">Personal Property</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debtValue">Debt Amount ($)</label>
+                        <input type="number" id="debtValue" placeholder="0" min="0" step="0.01">
+                        <small style="color: #7f8c8d; font-size: 12px;">Leave as 0 if this item has no debt</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debtCategory">Debt Category</label>
+                        <select id="debtCategory">
+                            <option value="">No debt (leave blank if 0)</option>
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="Mortgage">Mortgage</option>
+                            <option value="Auto Loan">Auto Loan</option>
+                            <option value="Student Loan">Student Loan</option>
+                            <option value="Personal Loan">Personal Loan</option>
+                            <option value="Other Debt">Other Debt</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debtPayoffYears">Years Until Debt Payoff</label>
+                        <input type="number" id="debtPayoffYears" placeholder="0" min="0" step="0.5">
+                        <small style="color: #7f8c8d; font-size: 12px;">How many years until this debt is paid off? (optional)</small>
+                    </div>
+
+                    <button type="submit" class="btn">Add Item</button>
+                </form>
+            </div>
+
+            <div class="visualization-section">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <h2>Financial Flow Diagram</h2>
+                    <div class="filter-section-standalone" id="filterSectionStandalone" style="margin: 0; padding: 12px 20px; border-radius: 8px;">
+                        <div class="filter-controls" style="gap: 10px;">
+                            <span class="filter-label" style="font-size: 13px;">Filter:</span>
+                            <div id="tagFiltersStandalone"></div>
+                            <button id="clearFiltersStandalone" class="btn" style="width: auto; padding: 6px 12px; font-size: 12px;">Show All</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <svg id="sankeyChart"></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="tag-breakdown-section" id="tagBreakdownSection">
+            <div class="collapsible-header" onclick="toggleCollapse('breakdown')">
+                <h2>Category Breakdown</h2>
+                <span class="collapse-icon" id="breakdownIcon">▼</span>
+            </div>
+            <div class="collapsible-content" id="breakdownContent">
+                <div class="breakdown-container">
+                    <div class="breakdown-column">
+                        <h3>Assets by Category</h3>
+                        <div id="assetBreakdown"></div>
+                    </div>
+                    <div class="breakdown-column">
+                        <h3>Debts by Category</h3>
+                        <div id="debtBreakdown"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="items-list">
+            <div class="collapsible-header" onclick="toggleCollapse('items')">
+                <h2>Your Financial Items</h2>
+                <span class="collapse-icon" id="itemsIcon">▼</span>
+            </div>
+            <div class="collapsible-content" id="itemsContent">
+                <div id="itemsList">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">No items added yet. Add your first financial item above!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tag-breakdown-section">
+            <div class="collapsible-header" onclick="toggleCollapse('settings')">
+                <h2>⚙️ Category Rate Settings</h2>
+                <span class="collapse-icon collapsed" id="settingsIcon">▼</span>
+            </div>
+            <div class="collapsible-content collapsed" id="settingsContent" style="max-height: 0;">
+                <p style="text-align: center; color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
+                    Customize the projected growth rates for each category. Rates are annual percentages.
+                </p>
+                <div id="categorySettings"></div>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button onclick="saveCategoryRates()" class="btn" style="width: auto; padding: 10px 20px;">Save Changes</button>
+                    <button onclick="resetCategoryRates()" class="btn" style="width: auto; padding: 10px 20px; background: #95a5a6;">Reset to Defaults</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let financialItems = [];
+        let activeFilters = new Set();
+        let editingItemId = null;
+        let selectedScenario = 'neutral'; // 'pessimistic', 'neutral', 'optimistic'
+        let selectedInterval = 0; // years
+
+        // LocalStorage functions
+        function saveToLocalStorage() {
+            localStorage.setItem('financialItems', JSON.stringify(financialItems));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('financialItems');
+            if (saved) {
+                try {
+                    financialItems = JSON.parse(saved);
+                    console.log(`Loaded ${financialItems.length} items from localStorage`);
+
+                    // Tag to category mapping
+                    const tagToCategoryMap = {
+                        'cash': 'Cash & Savings',
+                        'savings': 'Cash & Savings',
+                        'liquid': 'Cash & Savings',
+                        'investment': 'Investments',
+                        'investments': 'Investments',
+                        'stocks': 'Stocks',
+                        'stock': 'Stocks',
+                        'bonds': 'Bonds',
+                        'bond': 'Bonds',
+                        'retirement': 'Retirement Accounts',
+                        '401k': 'Retirement Accounts',
+                        'ira': 'Retirement Accounts',
+                        'real estate': 'Real Estate',
+                        'property': 'Real Estate',
+                        'house': 'Real Estate',
+                        'short term rental': 'Short Term Rental',
+                        'str': 'Short Term Rental',
+                        'airbnb': 'Short Term Rental',
+                        'rental': 'Short Term Rental',
+                        'crypto': 'Cryptocurrency',
+                        'cryptocurrency': 'Cryptocurrency',
+                        'bitcoin': 'Cryptocurrency',
+                        'vehicle': 'Vehicles',
+                        'vehicles': 'Vehicles',
+                        'car': 'Vehicles',
+                        'auto': 'Vehicles',
+                        'personal': 'Personal Property',
+                        'credit': 'Credit Card',
+                        'credit card': 'Credit Card',
+                        'mortgage': 'Mortgage',
+                        'auto loan': 'Auto Loan',
+                        'car loan': 'Auto Loan',
+                        'student loan': 'Student Loan',
+                        'student': 'Student Loan',
+                        'personal loan': 'Personal Loan',
+                        'loan': 'Personal Loan',
+                        'debt': 'Other Debt'
+                    };
+
+                    // Migrate old data format
+                    let migrationNeeded = false;
+                    financialItems = financialItems.map(item => {
+                        // Migrate from single category to assetCategory/debtCategory
+                        if (item.category && !item.assetCategory && !item.debtCategory) {
+                            // Determine if category is asset or debt based on values
+                            if (item.assetValue > 0 && item.debtValue === 0) {
+                                item.assetCategory = item.category;
+                            } else if (item.debtValue > 0 && item.assetValue === 0) {
+                                item.debtCategory = item.category;
+                            } else if (item.assetValue > 0 && item.debtValue > 0) {
+                                // Both exist - assign category based on whether it's an asset or debt category
+                                const assetCategories = ['Cash & Savings', 'Investments', 'Stocks', 'Bonds', 'Retirement Accounts', 'Real Estate', 'Short Term Rental', 'Cryptocurrency', 'Vehicles', 'Personal Property', 'Other'];
+                                if (assetCategories.includes(item.category)) {
+                                    item.assetCategory = item.category;
+                                    item.debtCategory = 'Mortgage'; // Default debt for assets with debt
+                                } else {
+                                    item.assetCategory = 'Other';
+                                    item.debtCategory = item.category;
+                                }
+                            }
+                            delete item.category;
+                            migrationNeeded = true;
+                        }
+
+                        // Migrate from tags to categories
+                        if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
+                            const firstTag = item.tags[0].toLowerCase().trim();
+                            const category = tagToCategoryMap[firstTag] || 'Other';
+
+                            if (item.assetValue > 0 && !item.assetCategory) {
+                                item.assetCategory = category;
+                            }
+                            if (item.debtValue > 0 && !item.debtCategory) {
+                                item.debtCategory = category.includes('Debt') || category.includes('Loan') || category.includes('Mortgage') || category.includes('Credit') ? category : 'Other Debt';
+                            }
+                            delete item.tags;
+                            migrationNeeded = true;
+                        }
+
+                        // Set defaults for items without categories
+                        if (item.assetValue > 0 && !item.assetCategory) {
+                            item.assetCategory = 'Other';
+                            migrationNeeded = true;
+                        }
+                        if (item.debtValue > 0 && !item.debtCategory) {
+                            item.debtCategory = 'Other Debt';
+                            migrationNeeded = true;
+                        }
+
+                        // If item has old 'type' field, remove it
+                        if (item.type) {
+                            delete item.type;
+                            migrationNeeded = true;
+                        }
+
+                        // Ensure netValue is calculated correctly
+                        if (item.netValue !== (item.assetValue - item.debtValue)) {
+                            item.netValue = (item.assetValue || 0) - (item.debtValue || 0);
+                            migrationNeeded = true;
+                        }
+
+                        return item;
+                    });
+
+                    if (migrationNeeded) {
+                        console.log('Data migration applied: converted to assetCategory/debtCategory structure');
+                        saveToLocalStorage(); // Save migrated data
+                    }
+
+                    console.log('Final data after migration:', financialItems);
+                } catch (e) {
+                    console.error('Error loading data from localStorage:', e);
+                    financialItems = [];
+                }
+            }
+        }
+
+        // Fixed categories for financial items with rate scenarios
+        const CATEGORIES = {
+            // Asset Categories (ROI = annual return %)
+            'Cash & Savings': {
+                color: '#f39c12', type: 'asset',
+                pessimistic: 0.01, neutral: 0.04, optimistic: 0.07
+            },
+            'Investments': {
+                color: '#9b59b6', type: 'asset',
+                pessimistic: 0.05, neutral: 0.08, optimistic: 0.11
+            },
+            'Stocks': {
+                color: '#3498db', type: 'asset',
+                pessimistic: 0.07, neutral: 0.10, optimistic: 0.13
+            },
+            'Bonds': {
+                color: '#95a5a6', type: 'asset',
+                pessimistic: 0.02, neutral: 0.05, optimistic: 0.08
+            },
+            'Retirement Accounts': {
+                color: '#1abc9c', type: 'asset',
+                pessimistic: 0.06, neutral: 0.09, optimistic: 0.12
+            },
+            'Real Estate': {
+                color: '#e67e22', type: 'asset',
+                pessimistic: 0.01, neutral: 0.04, optimistic: 0.07
+            },
+            'Short Term Rental': {
+                color: '#16a085', type: 'asset',
+                pessimistic: 0.05, neutral: 0.08, optimistic: 0.11
+            },
+            'Cryptocurrency': {
+                color: '#e74c3c', type: 'asset',
+                pessimistic: 0.12, neutral: 0.15, optimistic: 0.18
+            },
+            'Vehicles': {
+                color: '#34495e', type: 'asset',
+                pessimistic: -0.18, neutral: -0.15, optimistic: -0.12
+            },
+            'Personal Property': {
+                color: '#2ecc71', type: 'asset',
+                pessimistic: -0.08, neutral: -0.05, optimistic: -0.02
+            },
+            // Debt Categories (rate = negative annual interest %)
+            'Credit Card': {
+                color: '#8e44ad', type: 'debt',
+                pessimistic: -0.23, neutral: -0.20, optimistic: -0.17
+            },
+            'Mortgage': {
+                color: '#d35400', type: 'debt',
+                pessimistic: -0.10, neutral: -0.07, optimistic: -0.04
+            },
+            'Auto Loan': {
+                color: '#34495e', type: 'debt',
+                pessimistic: -0.11, neutral: -0.08, optimistic: -0.05
+            },
+            'Student Loan': {
+                color: '#7f8c8d', type: 'debt',
+                pessimistic: -0.085, neutral: -0.055, optimistic: -0.025
+            },
+            'Personal Loan': {
+                color: '#c0392b', type: 'debt',
+                pessimistic: -0.14, neutral: -0.11, optimistic: -0.08
+            },
+            'Other Debt': {
+                color: '#bdc3c7', type: 'debt',
+                pessimistic: -0.13, neutral: -0.10, optimistic: -0.07
+            },
+            // General
+            'Other': {
+                color: '#bdc3c7', type: 'general',
+                pessimistic: 0, neutral: 0, optimistic: 0
+            }
+        };
+
+        // Calculate annual projections based on category rates
+        function calculateAnnualProjections(items, scenario = selectedScenario) {
+            let assetGrowth = 0;
+            let debtCost = 0;
+
+            items.forEach(item => {
+                // Calculate asset growth
+                if (item.assetValue > 0 && item.assetCategory && CATEGORIES[item.assetCategory]) {
+                    const rate = CATEGORIES[item.assetCategory][scenario];
+                    assetGrowth += item.assetValue * rate;
+                }
+
+                // Calculate debt cost (annual payment for amortized loans, or interest-only)
+                if (item.debtValue > 0 && item.debtCategory && CATEGORIES[item.debtCategory]) {
+                    const annualRate = Math.abs(CATEGORIES[item.debtCategory][scenario]);
+                    const payoffYears = item.debtPayoffYears;
+
+                    if (payoffYears && payoffYears > 0) {
+                        // Calculate annual payment for amortized loan
+                        const monthlyRate = annualRate / 12;
+                        const totalMonths = payoffYears * 12;
+                        const monthlyPayment = item.debtValue * (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) /
+                                               (Math.pow(1 + monthlyRate, totalMonths) - 1);
+                        // Annual payment (negative because it's a cost)
+                        debtCost -= monthlyPayment * 12;
+                    } else {
+                        // Interest-only payment (negative because it's a cost)
+                        debtCost -= item.debtValue * annualRate;
+                    }
+                }
+            });
+
+            return {
+                assetGrowth,
+                debtCost,
+                netProjection: assetGrowth + debtCost
+            };
+        }
+
+        // Calculate projections at different time intervals
+        // Calculate remaining loan balance using amortization formula
+        function calculateLoanBalance(principal, annualRate, totalYears, elapsedYears) {
+            if (totalYears <= 0 || elapsedYears >= totalYears) {
+                return 0; // Loan is paid off
+            }
+
+            // Convert annual rate to monthly
+            const monthlyRate = annualRate / 12;
+            const totalMonths = totalYears * 12;
+            const elapsedMonths = elapsedYears * 12;
+
+            // Calculate monthly payment using amortization formula
+            // M = P * [r(1+r)^n] / [(1+r)^n - 1]
+            const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) /
+                                   (Math.pow(1 + monthlyRate, totalMonths) - 1);
+
+            // Calculate remaining balance after elapsed months
+            // B = P(1+r)^n - M[((1+r)^n - 1) / r]
+            const remainingBalance = principal * Math.pow(1 + monthlyRate, elapsedMonths) -
+                                     monthlyPayment * ((Math.pow(1 + monthlyRate, elapsedMonths) - 1) / monthlyRate);
+
+            return Math.max(0, remainingBalance); // Don't return negative
+        }
+
+        function calculateProjections(items, years, scenario = selectedScenario) {
+            let totalAssets = 0;
+            let totalDebts = 0;
+
+            items.forEach(item => {
+                let assetValue = item.assetValue || 0;
+                let debtValue = item.debtValue || 0;
+
+                // Project asset growth with compounding
+                if (assetValue > 0 && item.assetCategory && CATEGORIES[item.assetCategory]) {
+                    const rate = CATEGORIES[item.assetCategory][scenario];
+                    assetValue = assetValue * Math.pow(1 + rate, years);
+                }
+
+                // Project debt with proper amortization schedule
+                if (debtValue > 0 && item.debtCategory && CATEGORIES[item.debtCategory]) {
+                    const annualRate = Math.abs(CATEGORIES[item.debtCategory][scenario]);
+                    const payoffYears = item.debtPayoffYears;
+
+                    if (payoffYears && payoffYears > 0) {
+                        // Use amortization schedule to calculate remaining balance
+                        debtValue = calculateLoanBalance(debtValue, annualRate, payoffYears, years);
+                    } else {
+                        // No payoff timeline - debt grows with interest only (worst case)
+                        debtValue = debtValue * Math.pow(1 + annualRate, years);
+                    }
+                }
+
+                totalAssets += assetValue;
+                totalDebts += debtValue;
+            });
+
+            return {
+                assets: totalAssets,
+                debts: totalDebts,
+                netWorth: totalAssets - totalDebts
+            };
+        }
+
+        // Form handling
+        const form = document.getElementById('financialForm');
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('itemName').value;
+            const assetValue = parseFloat(document.getElementById('assetValue').value) || 0;
+            const debtValue = parseFloat(document.getElementById('debtValue').value) || 0;
+            const assetCategory = document.getElementById('assetCategory').value;
+            const debtCategory = document.getElementById('debtCategory').value;
+            const debtPayoffYears = parseFloat(document.getElementById('debtPayoffYears').value) || null;
+
+            const item = {
+                id: Date.now(),
+                name,
+                assetValue,
+                debtValue,
+                netValue: assetValue - debtValue,
+                assetCategory: assetValue > 0 ? (assetCategory || null) : null,
+                debtCategory: debtValue > 0 ? (debtCategory || null) : null,
+                debtPayoffYears: debtValue > 0 && debtPayoffYears ? debtPayoffYears : null
+            };
+
+            financialItems.push(item);
+            saveToLocalStorage();
+            updateDisplay();
+            form.reset();
+        });
+
+        function updateDisplay() {
+            updateSummary();
+            updateItemsList();
+            updateChart();
+            updateCategoryFilters();
+        }
+
+        function getFilteredItems() {
+            if (activeFilters.size === 0) {
+                return financialItems;
+            }
+            return financialItems.filter(item =>
+                item.assetCategory && activeFilters.has(item.assetCategory)
+            );
+        }
+
+        function updateCategoryFilters() {
+            const allCategories = new Set();
+            financialItems.forEach(item => {
+                if (item.assetCategory) {
+                    allCategories.add(item.assetCategory);
+                }
+            });
+
+            const filterSection = document.getElementById('filterSectionStandalone');
+            const categoryFilters = document.getElementById('tagFiltersStandalone');
+
+            if (allCategories.size === 0) {
+                filterSection.style.display = 'none';
+                return;
+            }
+
+            filterSection.style.display = 'block';
+            categoryFilters.innerHTML = Array.from(allCategories).sort().map(category =>
+                `<span class="filter-tag ${activeFilters.has(category) ? 'active' : ''}"
+                       onclick="toggleFilter('${category}')">${category}</span>`
+            ).join('');
+        }
+
+        function toggleFilter(tag) {
+            if (activeFilters.has(tag)) {
+                activeFilters.delete(tag);
+            } else {
+                activeFilters.add(tag);
+            }
+            updateDisplay();
+        }
+
+        function clearFilters() {
+            activeFilters.clear();
+            updateDisplay();
+        }
+
+        function renderItem(item) {
+            const categories = [];
+            if (item.assetCategory) categories.push(item.assetCategory);
+            if (item.debtCategory) categories.push(item.debtCategory);
+
+            return `
+                <div class="item">
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        ${categories.length > 0 ? `
+                            <div class="item-tags">
+                                ${categories.map(cat => `<span class="tag">${cat}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="item-values">
+                        ${item.assetValue > 0 ? `<div class="item-value positive">+${formatCurrency(item.assetValue)}</div>` : ''}
+                        ${item.debtValue > 0 ? `<div class="item-value negative">-${formatCurrency(item.debtValue)}</div>` : ''}
+                        <div class="item-value ${item.netValue >= 0 ? 'positive' : 'negative'}">
+                            Net: ${formatCurrency(item.netValue)}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="edit-btn" onclick="startEdit(${item.id})">Edit</button>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">Delete</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEditForm(item) {
+            const assetCategories = ['Cash & Savings', 'Investments', 'Stocks', 'Bonds', 'Retirement Accounts', 'Real Estate', 'Short Term Rental', 'Cryptocurrency', 'Vehicles', 'Personal Property', 'Other'];
+            const debtCategories = ['Credit Card', 'Mortgage', 'Auto Loan', 'Student Loan', 'Personal Loan', 'Other Debt'];
+
+            let assetOptions = '<option value="">No asset</option>';
+            assetCategories.forEach(cat => {
+                assetOptions += `<option value="${cat}" ${item.assetCategory === cat ? 'selected' : ''}>${cat}</option>`;
+            });
+
+            let debtOptions = '<option value="">No debt</option>';
+            debtCategories.forEach(cat => {
+                debtOptions += `<option value="${cat}" ${item.debtCategory === cat ? 'selected' : ''}>${cat}</option>`;
+            });
+
+            return `
+                <div class="item">
+                    <div class="edit-form">
+                        <input type="text" id="edit-name-${item.id}" value="${item.name}" placeholder="Item name" style="width: 100%;">
+                        <label style="font-size: 12px; margin-top: 8px; display: block;">Asset Value:</label>
+                        <input type="number" id="edit-asset-${item.id}" value="${item.assetValue}" placeholder="Asset value" min="0" step="0.01" style="width: 100%;">
+                        <label style="font-size: 12px; margin-top: 8px; display: block;">Asset Category:</label>
+                        <select id="edit-asset-category-${item.id}" style="width: 100%; margin-bottom: 8px;">${assetOptions}</select>
+                        <label style="font-size: 12px; display: block;">Debt Amount:</label>
+                        <input type="number" id="edit-debt-${item.id}" value="${item.debtValue}" placeholder="Debt amount" min="0" step="0.01" style="width: 100%;">
+                        <label style="font-size: 12px; margin-top: 8px; display: block;">Debt Category:</label>
+                        <select id="edit-debt-category-${item.id}" style="width: 100%;">${debtOptions}</select>
+                        <label style="font-size: 12px; margin-top: 8px; display: block;">Years Until Debt Payoff:</label>
+                        <input type="number" id="edit-debt-payoff-${item.id}" value="${item.debtPayoffYears || ''}" placeholder="0" min="0" step="0.5" style="width: 100%;">
+                        <div class="edit-actions">
+                            <button class="save-btn" onclick="saveEdit(${item.id})">Save</button>
+                            <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startEdit(id) {
+            editingItemId = id;
+            updateItemsList();
+        }
+
+        function cancelEdit() {
+            editingItemId = null;
+            updateItemsList();
+        }
+
+        function saveEdit(id) {
+            const name = document.getElementById(`edit-name-${id}`).value;
+            const assetValue = parseFloat(document.getElementById(`edit-asset-${id}`).value) || 0;
+            const debtValue = parseFloat(document.getElementById(`edit-debt-${id}`).value) || 0;
+            const assetCategory = document.getElementById(`edit-asset-category-${id}`).value;
+            const debtCategory = document.getElementById(`edit-debt-category-${id}`).value;
+            const debtPayoffYears = parseFloat(document.getElementById(`edit-debt-payoff-${id}`).value) || null;
+
+            const itemIndex = financialItems.findIndex(item => item.id === id);
+            if (itemIndex !== -1) {
+                financialItems[itemIndex] = {
+                    ...financialItems[itemIndex],
+                    name,
+                    assetValue,
+                    debtValue,
+                    netValue: assetValue - debtValue,
+                    assetCategory: assetValue > 0 ? (assetCategory || null) : null,
+                    debtCategory: debtValue > 0 ? (debtCategory || null) : null,
+                    debtPayoffYears: debtValue > 0 && debtPayoffYears ? debtPayoffYears : null
+                };
+                saveToLocalStorage();
+                editingItemId = null;
+                updateDisplay();
+            }
+        }
+
+        function setScenario(scenario) {
+            selectedScenario = scenario;
+            // Update button states - get all button groups and select the first one (scenarios)
+            const buttonGroups = document.querySelectorAll('.selector-section .button-group');
+            const buttons = buttonGroups[0].querySelectorAll('.selector-btn');
+            buttons.forEach((btn, idx) => {
+                const scenarios = ['pessimistic', 'neutral', 'optimistic'];
+                if (scenarios[idx] === scenario) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            updateDisplay();
+        }
+
+        function setProjectionInterval(years) {
+            selectedInterval = years;
+            // Update button states - get all button groups and select the second one (intervals)
+            const buttonGroups = document.querySelectorAll('.selector-section .button-group');
+            const buttons = buttonGroups[1].querySelectorAll('.selector-btn');
+            const intervals = [0, 0.5, 1, 2, 5, 10, 15, 20, 30];
+            buttons.forEach((btn, idx) => {
+                if (intervals[idx] === years) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            updateDisplay();
+        }
+
+        function updateSummary() {
+            const filteredItems = getFilteredItems();
+            const selectedYears = selectedInterval;
+
+            // Get current or projected values
+            let totalAssets, totalDebts, netWorth;
+            if (selectedYears === 0) {
+                // Current values
+                totalAssets = filteredItems.reduce((sum, item) => sum + item.assetValue, 0);
+                totalDebts = filteredItems.reduce((sum, item) => sum + item.debtValue, 0);
+                netWorth = totalAssets - totalDebts;
+            } else {
+                // Projected values
+                const projection = calculateProjections(filteredItems, selectedYears);
+                totalAssets = projection.assets;
+                totalDebts = projection.debts;
+                netWorth = projection.netWorth;
+            }
+
+            document.getElementById('totalAssets').textContent = formatCurrency(totalAssets);
+            document.getElementById('totalDebts').textContent = formatCurrency(totalDebts);
+            document.getElementById('netWorth').textContent = formatCurrency(netWorth);
+
+            // Calculate annual projections for current rate display
+            const annualProjections = calculateAnnualProjections(filteredItems);
+
+            // Update assets projection
+            const assetsProjectionElement = document.getElementById('assetsProjection');
+            if (selectedYears === 0 && annualProjections.assetGrowth !== 0) {
+                const assetText = annualProjections.assetGrowth >= 0
+                    ? `+${formatCurrency(annualProjections.assetGrowth)}/yr earnings`
+                    : `${formatCurrency(annualProjections.assetGrowth)}/yr loss`;
+                assetsProjectionElement.textContent = assetText;
+            } else if (selectedYears > 0) {
+                // Show change from current
+                const currentAssets = filteredItems.reduce((sum, item) => sum + item.assetValue, 0);
+                const change = totalAssets - currentAssets;
+                const changeText = change >= 0 ? `+${formatCurrency(change)}` : formatCurrency(change);
+                assetsProjectionElement.textContent = `${changeText} from current`;
+            } else {
+                assetsProjectionElement.textContent = '';
+            }
+
+            // Calculate and display debt percentages with cost
+            const debtsPercentageElement = document.getElementById('debtsPercentage');
+            const debtsCostElement = document.getElementById('debtsCost');
+            const netWorthPercentageElement = document.getElementById('netWorthPercentage');
+
+            if (totalAssets > 0) {
+                const debtsPercentage = (totalDebts / totalAssets * 100).toFixed(1);
+                const netWorthPercentage = (netWorth / totalAssets * 100).toFixed(1);
+
+                debtsPercentageElement.textContent = `${debtsPercentage}% of assets`;
+
+                // Show debt cost
+                if (selectedYears === 0 && annualProjections.debtCost !== 0) {
+                    debtsCostElement.textContent = `${formatCurrency(annualProjections.debtCost)}/yr interest`;
+                } else if (selectedYears > 0) {
+                    const currentDebts = filteredItems.reduce((sum, item) => sum + item.debtValue, 0);
+                    const change = totalDebts - currentDebts;
+                    const changeText = change >= 0 ? `+${formatCurrency(change)}` : formatCurrency(change);
+                    debtsCostElement.textContent = `${changeText} from current`;
+                } else {
+                    debtsCostElement.textContent = '';
+                }
+
+                // Show net worth percentage
+                if (selectedYears === 0) {
+                    const projectionText = annualProjections.netProjection >= 0
+                        ? `+${formatCurrency(annualProjections.netProjection)}/yr`
+                        : `${formatCurrency(annualProjections.netProjection)}/yr`;
+                    netWorthPercentageElement.textContent = `${netWorthPercentage}% of assets (${projectionText})`;
+                } else {
+                    const currentNetWorth = filteredItems.reduce((sum, item) => sum + (item.assetValue - item.debtValue), 0);
+                    const change = netWorth - currentNetWorth;
+                    const changeText = change >= 0 ? `+${formatCurrency(change)}` : formatCurrency(change);
+                    netWorthPercentageElement.textContent = `${netWorthPercentage}% of assets (${changeText} from current)`;
+                }
+            } else {
+                debtsPercentageElement.textContent = '';
+                debtsCostElement.textContent = '';
+                netWorthPercentageElement.textContent = '';
+            }
+        }
+
+        function updateItemsList() {
+            const itemsList = document.getElementById('itemsList');
+            const filteredItems = getFilteredItems();
+            
+            if (financialItems.length === 0) {
+                itemsList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No items added yet. Add your first financial item above!</p>';
+                return;
+            }
+            
+            if (filteredItems.length === 0) {
+                itemsList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No items match the selected filters.</p>';
+                return;
+            }
+            
+            itemsList.innerHTML = filteredItems.map(item => 
+                editingItemId === item.id ? renderEditForm(item) : renderItem(item)
+            ).join('');
+        }
+
+        function updateChart() {
+            const svg = d3.select('#sankeyChart');
+            svg.selectAll('*').remove();
+
+            const filteredItems = getFilteredItems();
+            if (filteredItems.length === 0) {
+                return;
+            }
+
+            // Function to get color for an item based on its category
+            function getItemColor(item, type) {
+                if (type === 'networth') {
+                    return item.netWorth >= 0 ? '#3498db' : '#e74c3c';
+                }
+
+                // Use the appropriate category based on type
+                const category = type === 'asset' ? item.assetCategory : item.debtCategory;
+
+                if (category && CATEGORIES[category]) {
+                    return CATEGORIES[category].color;
+                }
+
+                // Default colors based on type
+                if (type === 'asset') return '#27ae60';  // Default green for assets
+                if (type === 'debt') return '#e74c3c';   // Default red for debts
+                return '#95a5a6';  // Default gray
+            }
+
+            const container = document.querySelector('.chart-container');
+            const margin = { top: 40, right: 120, bottom: 40, left: 120 };
+            const width = container.clientWidth - margin.left - margin.right;
+            const height = container.clientHeight - margin.top - margin.bottom;
+
+            const chart = svg
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // Smart grouping function
+            function groupItemsByCategory(items, type) {
+                const totalValue = items.reduce((sum, item) => sum + (type === 'asset' ? item.assetValue : item.debtValue), 0);
+                const threshold = totalValue * 0.03; // Group items smaller than 3% of total
+                const minGroupSize = 3; // Need at least 3 items to form a group
+
+                const largeItems = [];
+                const smallItems = [];
+
+                items.forEach(item => {
+                    const value = type === 'asset' ? item.assetValue : item.debtValue;
+                    if (value >= threshold) {
+                        largeItems.push(item);
+                    } else {
+                        smallItems.push(item);
+                    }
+                });
+
+                const groupedItems = [...largeItems];
+
+                if (smallItems.length >= minGroupSize) {
+                    // Group by category
+                    const categoryGroups = {};
+                    const uncategorizedItems = [];
+
+                    smallItems.forEach(item => {
+                        const category = type === 'asset' ? item.assetCategory : item.debtCategory;
+                        if (category) {
+                            if (!categoryGroups[category]) {
+                                categoryGroups[category] = [];
+                            }
+                            categoryGroups[category].push(item);
+                        } else {
+                            uncategorizedItems.push(item);
+                        }
+                    });
+
+                    // Create group nodes for category groups
+                    Object.entries(categoryGroups).forEach(([category, groupItems]) => {
+                        if (groupItems.length >= 2) {
+                            const totalValue = groupItems.reduce((sum, item) =>
+                                sum + (type === 'asset' ? item.assetValue : item.debtValue), 0);
+
+                            const groupItem = {
+                                name: `Various ${category}`,
+                                [type === 'asset' ? 'assetValue' : 'debtValue']: totalValue,
+                                [type === 'asset' ? 'debtValue' : 'assetValue']: 0,
+                                netValue: type === 'asset' ? totalValue : -totalValue,
+                                isGroup: true,
+                                groupItems: groupItems,
+                                groupType: category
+                            };
+                            // Set the appropriate category
+                            if (type === 'asset') {
+                                groupItem.assetCategory = category;
+                            } else {
+                                groupItem.debtCategory = category;
+                            }
+                            groupedItems.push(groupItem);
+                        } else {
+                            groupedItems.push(...groupItems);
+                        }
+                    });
+
+                    // Create a misc group for uncategorized items if enough exist
+                    if (uncategorizedItems.length >= minGroupSize) {
+                        const totalValue = uncategorizedItems.reduce((sum, item) =>
+                            sum + (type === 'asset' ? item.assetValue : item.debtValue), 0);
+
+                        const miscItem = {
+                            name: type === 'asset' ? 'Other Assets' : 'Other Debts',
+                            [type === 'asset' ? 'assetValue' : 'debtValue']: totalValue,
+                            [type === 'asset' ? 'debtValue' : 'assetValue']: 0,
+                            netValue: type === 'asset' ? totalValue : -totalValue,
+                            isGroup: true,
+                            groupItems: uncategorizedItems,
+                            groupType: 'misc'
+                        };
+                        if (type === 'asset') {
+                            miscItem.assetCategory = 'Other';
+                        } else {
+                            miscItem.debtCategory = 'Other';
+                        }
+                        groupedItems.push(miscItem);
+                    } else {
+                        groupedItems.push(...uncategorizedItems);
+                    }
+                } else {
+                    groupedItems.push(...smallItems);
+                }
+
+                return groupedItems;
+            }
+
+            // Prepare Sankey data with smart grouping
+            const nodes = [];
+            const links = [];
+            let nodeIndex = 0;
+
+            // Function to sort items by category
+            function sortItemsByCategory(items, type) {
+                return items.sort((a, b) => {
+                    // Get primary category for sorting
+                    const getCategoryForSorting = (item) => {
+                        if (item.isGroup && item.groupType) {
+                            return item.groupType === 'misc' ? 'zz_misc' : item.groupType;
+                        }
+                        const category = type === 'asset' ? item.assetCategory : item.debtCategory;
+                        if (category) {
+                            return category.toLowerCase();
+                        }
+                        return 'zz_uncategorized';
+                    };
+
+                    const categoryA = getCategoryForSorting(a);
+                    const categoryB = getCategoryForSorting(b);
+
+                    // First sort by category
+                    if (categoryA !== categoryB) {
+                        return categoryA.localeCompare(categoryB);
+                    }
+
+                    // Within same category, sort by value (descending)
+                    const valueA = a.assetValue || a.debtValue || 0;
+                    const valueB = b.assetValue || b.debtValue || 0;
+                    return valueB - valueA;
+                });
+            }
+
+            // Group and sort assets and debts
+            const assetItems = sortItemsByCategory(groupItemsByCategory(filteredItems.filter(item => item.assetValue > 0), 'asset'), 'asset');
+            const debtItems = sortItemsByCategory(groupItemsByCategory(filteredItems.filter(item => item.debtValue > 0), 'debt'), 'debt');
+
+            // Assets nodes (left side)
+            assetItems.forEach(item => {
+                nodes.push({
+                    id: nodeIndex++,
+                    name: item.name,
+                    value: item.assetValue,
+                    type: 'asset',
+                    item: item,
+                    isGroup: item.isGroup || false,
+                    groupItems: item.groupItems || []
+                });
+            });
+
+            // Net Worth node (center)
+            const netWorthIndex = nodeIndex++;
+            const totalAssets = filteredItems.reduce((sum, item) => sum + item.assetValue, 0);
+            const totalDebts = filteredItems.reduce((sum, item) => sum + item.debtValue, 0);
+            const netWorth = totalAssets - totalDebts;
+            
+            nodes.push({
+                id: netWorthIndex,
+                name: 'Net Worth',
+                value: Math.abs(netWorth),
+                type: 'networth',
+                netWorth: netWorth
+            });
+
+            // Debt nodes (right side)
+            debtItems.forEach(item => {
+                nodes.push({
+                    id: nodeIndex++,
+                    name: item.name + (item.isGroup ? '' : ' (Debt)'),
+                    value: item.debtValue,
+                    type: 'debt',
+                    item: item,
+                    isGroup: item.isGroup || false,
+                    groupItems: item.groupItems || []
+                });
+            });
+
+            // Create links from assets to net worth
+            assetItems.forEach((item, index) => {
+                links.push({
+                    source: index,
+                    target: netWorthIndex,
+                    value: item.assetValue
+                });
+            });
+
+            // Create links from net worth to debts
+            debtItems.forEach((item, index) => {
+                links.push({
+                    source: netWorthIndex,
+                    target: assetItems.length + 1 + index,
+                    value: item.debtValue
+                });
+            });
+
+            // Create Sankey layout
+            const sankey = d3.sankey()
+                .nodeId(d => d.id)
+                .nodeWidth(25)
+                .nodePadding(15)
+                .extent([[0, 0], [width, height]]);
+
+            const sankeyData = sankey({
+                nodes: nodes.map(d => ({...d})),
+                links: links.map(d => ({...d}))
+            });
+
+            // Get or create tooltip
+            let tooltip = d3.select('body').select('.sankey-tooltip');
+            if (tooltip.empty()) {
+                tooltip = d3.select('body').append('div')
+                    .attr('class', 'tooltip sankey-tooltip')
+                    .style('opacity', 0);
+            }
+
+            // Draw links
+            const link = chart.append('g')
+                .selectAll('.sankey-link')
+                .data(sankeyData.links)
+                .enter().append('path')
+                .attr('class', 'sankey-link')
+                .attr('d', d3.sankeyLinkHorizontal())
+                .attr('stroke', d => {
+                    // For debt flows (from net worth to debt), use target color
+                    // For asset flows (from asset to net worth), use source color
+                    let baseColor;
+                    if (d.target.type === 'debt') {
+                        // Flow from net worth to debt - use debt node color
+                        baseColor = getItemColor(d.target.item || d.target, d.target.type);
+                    } else {
+                        // Flow from asset to net worth - use asset node color
+                        baseColor = getItemColor(d.source.item || d.source, d.source.type);
+                    }
+                    return d3.color(baseColor).copy({opacity: 0.7});
+                })
+                .attr('stroke-width', d => Math.max(1, d.width))
+                .on('mouseover', function(event, d) {
+                    d3.select(this).attr('stroke-opacity', 0.8);
+                    tooltip.transition().duration(200).style('opacity', .9);
+                    tooltip.html(`
+                        <strong>${d.source.name} → ${d.target.name}</strong><br/>
+                        Amount: ${formatCurrency(d.value)}
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function(d) {
+                    d3.select(this).attr('stroke-opacity', 0.6);
+                    tooltip.transition().duration(500).style('opacity', 0);
+                });
+
+            // Draw nodes
+            const node = chart.append('g')
+                .selectAll('.sankey-node')
+                .data(sankeyData.nodes)
+                .enter().append('g')
+                .attr('class', 'sankey-node')
+                .attr('transform', d => `translate(${d.x0},${d.y0})`);
+
+            node.append('rect')
+                .attr('height', d => d.y1 - d.y0)
+                .attr('width', d => d.x1 - d.x0)
+                .attr('fill', d => getItemColor(d.item || d, d.type))
+                .attr('stroke', d => {
+                    const baseColor = getItemColor(d.item || d, d.type);
+                    return d3.color(baseColor).darker(0.3);
+                })
+                .attr('stroke-width', 1)
+                .on('mouseover', function(event, d) {
+                    d3.select(this).style('opacity', 0.8);
+                    tooltip.transition().duration(200).style('opacity', .9);
+                    
+                    let content = '';
+                    if (d.type === 'networth') {
+                        content = `<strong>${d.name}</strong><br/>Amount: ${formatCurrency(d.netWorth)}`;
+                    } else if (d.isGroup && d.groupItems && d.groupItems.length > 0) {
+                        // Grouped items tooltip
+                        content = `<strong>${d.name}</strong><br/>`;
+                        content += `Total: ${formatCurrency(d.value)}<br/>`;
+                        content += `<em>Contains ${d.groupItems.length} items:</em><br/>`;
+                        
+                        // Show up to 5 items, then summarize
+                        const itemsToShow = d.groupItems.slice(0, 5);
+                        itemsToShow.forEach(item => {
+                            const value = d.type === 'asset' ? item.assetValue : item.debtValue;
+                            content += `• ${item.name}: ${formatCurrency(value)}<br/>`;
+                        });
+                        
+                        if (d.groupItems.length > 5) {
+                            content += `• ... and ${d.groupItems.length - 5} more`;
+                        }
+                    } else {
+                        // Single item tooltip
+                        content = `<strong>${d.name}</strong><br/>Value: ${formatCurrency(d.value)}`;
+                        if (d.item) {
+                            const category = d.type === 'asset' ? d.item.assetCategory : d.item.debtCategory;
+                            if (category) {
+                                content += `<br/>Category: ${category}`;
+                            }
+                        }
+                    }
+                    
+                    tooltip.html(content)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function(d) {
+                    d3.select(this).style('opacity', 1);
+                    tooltip.transition().duration(500).style('opacity', 0);
+                });
+
+            // Add labels positioned correctly relative to nodes
+            chart.selectAll('.node-label-group')
+                .data(sankeyData.nodes)
+                .enter().append('g')
+                .attr('class', 'node-label-group')
+                .each(function(d) {
+                    const labelGroup = d3.select(this);
+                    const nodeHeight = d.y1 - d.y0;
+                    const nodeWidth = d.x1 - d.x0;
+                    const isSmallNode = nodeHeight < 30 || nodeWidth < 80;
+                    
+                    // Get the display name and value
+                    const displayName = d.name;
+                    const displayValue = d.type === 'networth' ? d.netWorth : d.value;
+                    
+                    if (isSmallNode) {
+                        // External labels for small nodes
+                        const labelX = d.type === 'asset' ? d.x0 - 15 : 
+                                      d.type === 'debt' ? d.x1 + 15 : 
+                                      d.x0 + nodeWidth / 2;
+                        const labelAnchor = d.type === 'asset' ? 'end' : 
+                                           d.type === 'debt' ? 'start' : 'middle';
+                        
+                        // External name label
+                        labelGroup.append('text')
+                            .attr('class', 'sankey-external-label')
+                            .attr('x', labelX)
+                            .attr('y', d.y0 + nodeHeight / 2 - 6)
+                            .attr('text-anchor', labelAnchor)
+                            .text(() => {
+                                const maxLength = d.type === 'networth' ? 12 : 10;
+                                return displayName.length > maxLength ? displayName.substring(0, maxLength - 3) + '...' : displayName;
+                            });
+                        
+                        // External value label
+                        labelGroup.append('text')
+                            .attr('class', 'sankey-external-value')
+                            .attr('x', labelX)
+                            .attr('y', d.y0 + nodeHeight / 2 + 8)
+                            .attr('text-anchor', labelAnchor)
+                            .text(() => formatCurrency(displayValue));
+                    } else {
+                        // Internal labels for large nodes
+                        // Internal name label
+                        labelGroup.append('text')
+                            .attr('class', 'sankey-node-label')
+                            .attr('x', d.x0 + nodeWidth / 2)
+                            .attr('y', d.y0 + nodeHeight / 2 - 6)
+                            .attr('text-anchor', 'middle')
+                            .attr('dy', '0.35em')
+                            .text(() => {
+                                const maxLength = nodeWidth > 100 ? 18 : 12;
+                                return displayName.length > maxLength ? displayName.substring(0, maxLength - 3) + '...' : displayName;
+                            });
+                        
+                        // Internal value label
+                        labelGroup.append('text')
+                            .attr('class', 'sankey-node-value')
+                            .attr('x', d.x0 + nodeWidth / 2)
+                            .attr('y', d.y0 + nodeHeight / 2 + 8)
+                            .attr('text-anchor', 'middle')
+                            .attr('dy', '0.35em')
+                            .text(() => formatCurrency(displayValue));
+                    }
+                });
+        }
+
+        function deleteItem(id) {
+            financialItems = financialItems.filter(item => item.id !== id);
+            saveToLocalStorage();
+            updateDisplay();
+        }
+
+        function formatCurrency(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) {
+                return '$0.00';
+            }
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function calculateCategoryBreakdown() {
+            const filteredItems = getFilteredItems();
+            const categoryTotals = {};
+
+            filteredItems.forEach(item => {
+                // Add asset value to asset category
+                if (item.assetCategory && item.assetValue > 0) {
+                    if (!categoryTotals[item.assetCategory]) {
+                        categoryTotals[item.assetCategory] = { assets: 0, debts: 0 };
+                    }
+                    categoryTotals[item.assetCategory].assets += item.assetValue;
+                }
+                // Add debt value to debt category
+                if (item.debtCategory && item.debtValue > 0) {
+                    if (!categoryTotals[item.debtCategory]) {
+                        categoryTotals[item.debtCategory] = { assets: 0, debts: 0 };
+                    }
+                    categoryTotals[item.debtCategory].debts += item.debtValue;
+                }
+            });
+
+            return categoryTotals;
+        }
+
+        function updateTagBreakdown() {
+            const tagBreakdownSection = document.getElementById('tagBreakdownSection');
+            const assetBreakdown = document.getElementById('assetBreakdown');
+            const debtBreakdown = document.getElementById('debtBreakdown');
+
+            if (!tagBreakdownSection || !assetBreakdown || !debtBreakdown) {
+                return;
+            }
+
+            const categoryTotals = calculateCategoryBreakdown();
+            const filteredItems = getFilteredItems();
+
+            // Calculate overall totals for percentage calculation
+            const totalAssets = filteredItems.reduce((sum, item) => sum + item.assetValue, 0);
+            const totalDebts = filteredItems.reduce((sum, item) => sum + item.debtValue, 0);
+            const netWorth = totalAssets - totalDebts;
+
+            // Show breakdown section if we have any financial items
+            if (filteredItems.length === 0) {
+                tagBreakdownSection.style.display = 'none';
+                return;
+            }
+
+            tagBreakdownSection.style.display = 'block';
+
+            // If no categories, show a helpful message
+            if (Object.keys(categoryTotals).length === 0) {
+                assetBreakdown.innerHTML = '<div class="no-tags-message">Add categories to your items to see category breakdowns</div>';
+                debtBreakdown.innerHTML = '<div class="no-tags-message">Add categories to your items to see category breakdowns</div>';
+                return;
+            }
+            
+            tagBreakdownSection.style.display = 'block';
+
+            // Sort categories by total value (assets + debts) descending
+            const sortedCategories = Object.entries(categoryTotals).sort((a, b) =>
+                (b[1].assets + b[1].debts) - (a[1].assets + a[1].debts)
+            );
+
+            // Generate asset breakdown
+            const assetItems = sortedCategories
+                .filter(([category, totals]) => totals.assets > 0)
+                .map(([category, totals]) => {
+                    const assetPercentage = totalAssets > 0 ? (totals.assets / totalAssets * 100).toFixed(1) : 0;
+                    const netWorthPercentage = Math.abs(netWorth) > 0 ? (totals.assets / Math.abs(netWorth) * 100).toFixed(1) : 0;
+
+                    // Calculate annual projection for this category
+                    const rate = CATEGORIES[category] ? CATEGORIES[category][selectedScenario] : 0;
+                    const annualProjection = totals.assets * rate;
+                    const ratePercent = (rate * 100).toFixed(1);
+                    const projectionSign = annualProjection >= 0 ? '+' : '';
+
+                    return `
+                        <div class="breakdown-item asset">
+                            <div class="breakdown-tag">${category}</div>
+                            <div class="breakdown-values">
+                                <div class="breakdown-amount asset">${formatCurrency(totals.assets)}</div>
+                                <div class="breakdown-percentage">${assetPercentage}% of assets • ${projectionSign}${ratePercent}% rate</div>
+                                <div class="breakdown-networth-percentage">${netWorthPercentage}% of net worth • ${projectionSign}${formatCurrency(annualProjection)}/yr</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            
+            assetBreakdown.innerHTML = assetItems.length > 0
+                ? assetItems.join('')
+                : '<div class="no-tags-message">No assets with categories</div>';
+
+            // Generate debt breakdown
+            const debtItems = sortedCategories
+                .filter(([category, totals]) => totals.debts > 0)
+                .map(([category, totals]) => {
+                    const debtPercentage = totalDebts > 0 ? (totals.debts / totalDebts * 100).toFixed(1) : 0;
+                    // Calculate debt-to-asset ratio for this category
+                    const debtToAssetRatio = totalAssets > 0 ? (totals.debts / totalAssets * 100).toFixed(1) : 0;
+
+                    // Calculate annual cost for this category
+                    const rate = CATEGORIES[category] ? CATEGORIES[category][selectedScenario] : 0;
+                    const annualCost = totals.debts * rate; // Will be negative
+                    const ratePercent = Math.abs(rate * 100).toFixed(1);
+
+                    return `
+                        <div class="breakdown-item debt">
+                            <div class="breakdown-tag">${category}</div>
+                            <div class="breakdown-values">
+                                <div class="breakdown-amount debt">${formatCurrency(totals.debts)}</div>
+                                <div class="breakdown-percentage">${debtPercentage}% of debts • ${ratePercent}% APR</div>
+                                <div class="breakdown-networth-percentage">${debtToAssetRatio}% of assets • ${formatCurrency(annualCost)}/yr</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+            debtBreakdown.innerHTML = debtItems.length > 0
+                ? debtItems.join('')
+                : '<div class="no-tags-message">No debts with categories</div>';
+        }
+
+        // Collapsible sections functionality
+        // Default category rates
+        const DEFAULT_CATEGORIES = JSON.parse(JSON.stringify(CATEGORIES)); // Deep copy
+
+        function renderCategorySettings() {
+            const container = document.getElementById('categorySettings');
+            let html = '';
+
+            // Group by type
+            const assetCategories = Object.entries(CATEGORIES).filter(([_, cat]) => cat.type === 'asset');
+            const debtCategories = Object.entries(CATEGORIES).filter(([_, cat]) => cat.type === 'debt');
+
+            // Asset categories
+            html += '<h3 style="color: #27ae60; margin-bottom: 15px;">Asset Categories</h3>';
+            assetCategories.forEach(([name, cat]) => {
+                const pess = (cat.pessimistic * 100).toFixed(1);
+                const neut = (cat.neutral * 100).toFixed(1);
+                const opt = (cat.optimistic * 100).toFixed(1);
+                html += `
+                    <div class="settings-category">
+                        <h4>${name}</h4>
+                        <div class="settings-row">
+                            <div class="settings-input-group">
+                                <label>Pessimistic %</label>
+                                <input type="number" step="0.1" value="${pess}"
+                                    id="rate-${name.replace(/\s+/g, '-')}-pessimistic"
+                                    data-category="${name}" data-scenario="pessimistic">
+                            </div>
+                            <div class="settings-input-group">
+                                <label>Neutral %</label>
+                                <input type="number" step="0.1" value="${neut}"
+                                    id="rate-${name.replace(/\s+/g, '-')}-neutral"
+                                    data-category="${name}" data-scenario="neutral">
+                            </div>
+                            <div class="settings-input-group">
+                                <label>Optimistic %</label>
+                                <input type="number" step="0.1" value="${opt}"
+                                    id="rate-${name.replace(/\s+/g, '-')}-optimistic"
+                                    data-category="${name}" data-scenario="optimistic">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Debt categories
+            html += '<h3 style="color: #e74c3c; margin: 30px 0 15px 0;">Debt Categories</h3>';
+            debtCategories.forEach(([name, cat]) => {
+                const pess = Math.abs(cat.pessimistic * 100).toFixed(1);
+                const neut = Math.abs(cat.neutral * 100).toFixed(1);
+                const opt = Math.abs(cat.optimistic * 100).toFixed(1);
+                html += `
+                    <div class="settings-category">
+                        <h4>${name}</h4>
+                        <div class="settings-row">
+                            <div class="settings-input-group">
+                                <label>Pessimistic % (worst)</label>
+                                <input type="number" step="0.1" value="${pess}"
+                                    id="rate-${name.replace(/\s+/g, '-')}-pessimistic"
+                                    data-category="${name}" data-scenario="pessimistic">
+                            </div>
+                            <div class="settings-input-group">
+                                <label>Neutral %</label>
+                                <input type="number" step="0.1" value="${neut}"
+                                    id="rate-${name.replace(/\s+/g, '-')}-neutral"
+                                    data-category="${name}" data-scenario="neutral">
+                            </div>
+                            <div class="settings-input-group">
+                                <label>Optimistic % (best)</label>
+                                <input type="number" step="0.1" value="${opt}"
+                                    id="rate-${name.replace(/\s+/g, '-')}-optimistic"
+                                    data-category="${name}" data-scenario="optimistic">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function saveCategoryRates() {
+            const inputs = document.querySelectorAll('#categorySettings input[data-category]');
+            inputs.forEach(input => {
+                const category = input.dataset.category;
+                const scenario = input.dataset.scenario;
+                const value = parseFloat(input.value) / 100;
+
+                // For debt categories, store as negative
+                if (CATEGORIES[category].type === 'debt') {
+                    CATEGORIES[category][scenario] = -Math.abs(value);
+                } else {
+                    CATEGORIES[category][scenario] = value;
+                }
+            });
+
+            // Save to localStorage
+            localStorage.setItem('customCategoryRates', JSON.stringify(CATEGORIES));
+
+            // Refresh display
+            updateDisplay();
+            alert('Category rates saved successfully!');
+        }
+
+        function resetCategoryRates() {
+            if (!confirm('Reset all category rates to default values?')) {
+                return;
+            }
+
+            // Reset CATEGORIES to defaults
+            Object.keys(DEFAULT_CATEGORIES).forEach(key => {
+                CATEGORIES[key] = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES[key]));
+            });
+
+            // Remove from localStorage
+            localStorage.removeItem('customCategoryRates');
+
+            // Re-render settings
+            renderCategorySettings();
+            updateDisplay();
+            alert('Category rates reset to defaults!');
+        }
+
+        function toggleCollapse(section) {
+            const content = document.getElementById(section + 'Content');
+            const icon = document.getElementById(section + 'Icon');
+
+            if (content.classList.contains('collapsed')) {
+                // Render settings before expanding
+                if (section === 'settings') {
+                    renderCategorySettings();
+                }
+
+                content.classList.remove('collapsed');
+                icon.classList.remove('collapsed');
+
+                // Use setTimeout to ensure content is rendered before measuring
+                setTimeout(() => {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                }, 10);
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.add('collapsed');
+                content.style.maxHeight = '0';
+            }
+        }
+
+        // Clear filters event handler
+        document.getElementById('clearFiltersStandalone').addEventListener('click', clearFilters);
+
+
+        // Initialize
+        loadFromLocalStorage();
+
+        // Load custom category rates if they exist
+        const customRates = localStorage.getItem('customCategoryRates');
+        if (customRates) {
+            try {
+                const parsed = JSON.parse(customRates);
+                Object.keys(parsed).forEach(key => {
+                    if (CATEGORIES[key]) {
+                        CATEGORIES[key] = parsed[key];
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading custom rates:', e);
+            }
+        }
+
+        updateDisplay();
+
+        // Ensure breakdown section is visible after load
+        setTimeout(() => {
+            updateTagBreakdown();
+        }, 100);
+    </script>
+</body>
+</html>
