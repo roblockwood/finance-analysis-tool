@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a single-page financial analysis tool built with vanilla JavaScript and D3.js. The application allows users to track assets and debts, visualize financial flows using Sankey diagrams, and categorize items using a fixed set of predefined categories.
+This is a single-page financial analysis tool built with vanilla JavaScript and D3.js. The application allows users to track assets and debts, visualize financial flows using Sankey diagrams, project future values with customizable scenarios, and categorize items using a fixed set of predefined categories with configurable growth rates.
 
 ## Architecture
 
@@ -30,22 +30,36 @@ Financial items are stored as objects with:
 - `assetValue`: Asset value (number)
 - `debtValue`: Debt value (number)
 - `netValue`: Calculated as assetValue - debtValue
-- `category`: Single category string (required)
+- `assetCategory`: Category for asset portion (if assetValue > 0)
+- `debtCategory`: Category for debt portion (if debtValue > 0)
+- `debtPayoffYears`: Years until debt is paid off (optional, used for amortization)
 
 #### Fixed Categories
-The application uses predefined categories defined in the `CATEGORIES` object (lines 927-947):
-- **Asset Categories**: Cash & Savings, Investments, Stocks, Bonds, Retirement Accounts, Real Estate, Cryptocurrency, Vehicles, Personal Property
+The application uses predefined categories defined in the `CATEGORIES` object:
+- **Asset Categories**: Cash & Savings, Investments, Stocks, Bonds, Retirement Accounts, Real Estate, Short Term Rental, Cryptocurrency, Vehicles, Personal Property
 - **Debt Categories**: Credit Card, Mortgage, Auto Loan, Student Loan, Personal Loan, Other Debt
 - **General**: Other
 
-Each category has an associated color and type for visualization purposes.
+Each category has:
+- `color`: Hex color for visualization
+- `type`: 'asset', 'debt', or 'general'
+- `pessimistic`: Lower growth/interest rate scenario
+- `neutral`: Expected growth/interest rate
+- `optimistic`: Higher growth/interest rate scenario
+
+Custom category rates can be configured via the Settings UI and are persisted to localStorage.
 
 #### Core Features
-1. **LocalStorage Persistence** (lines 683-774): Automatic save/load with data migration support from tags to categories
-2. **Category-Based Filtering** (lines 779-800): Dynamic filtering system using Set data structure
-3. **Sankey Visualization** (lines 957-1370): Complex D3.js flow diagram with smart grouping algorithm
-4. **Category Breakdown** (lines 1385-1485): Aggregated statistics by category
-5. **CRUD Operations**: Add, edit, delete items with inline editing UI
+1. **LocalStorage Persistence**: Automatic save/load with data migration support
+2. **Dual-Category System**: Separate asset and debt categories for items with both
+3. **Projection Modeling**: Calculate future values at intervals (6mo, 1yr, 2yr, 5yr, 10yr, 15yr, 20yr, 30yr)
+4. **Scenario Analysis**: Pessimistic, neutral, and optimistic rate scenarios
+5. **Debt Amortization**: Proper loan amortization calculations with payoff timelines
+6. **Category-Based Filtering**: Dynamic filtering by asset categories
+7. **Sankey Visualization**: D3.js flow diagram with smart grouping algorithm
+8. **Category Breakdown**: Aggregated statistics with annual projections per category
+9. **Settings UI**: Customizable category growth/interest rates
+10. **CRUD Operations**: Add, edit, delete items with inline editing UI
 
 #### Smart Grouping Algorithm (lines 1017-1097)
 The Sankey chart uses an intelligent grouping algorithm:
@@ -88,25 +102,31 @@ Two collapsible sections use a shared toggle function (lines 1487-1500):
 - Financial Items List
 
 ### LocalStorage Schema
-Data is stored under the key `'financialItems'` as JSON array. Each item contains: id, name, assetValue, debtValue, netValue, and category. Always maintain backward compatibility when modifying the data structure.
+Data is stored under two keys:
+- `'financialItems'`: JSON array of financial items with id, name, assetValue, debtValue, netValue, assetCategory, debtCategory, and debtPayoffYears
+- `'customCategoryRates'`: JSON object of custom category rates (optional)
+
+Always maintain backward compatibility when modifying the data structure.
 
 ## Common Modification Patterns
 
 ### Adding New Categories
-1. Add new category to the `CATEGORIES` object (lines 927-947) with color and type
-2. Add category option to both the form dropdown (lines 594-617) and edit form (lines 843-862)
-3. Update the `tagToCategoryMap` in migration logic (lines 691-725) if migrating from tags
-4. No other code changes required - visualization and breakdown will automatically use the new category
+1. Add new category to the `CATEGORIES` object with color, type, and three rate scenarios (pessimistic, neutral, optimistic)
+2. Add category option to both the asset/debt form dropdowns and edit forms
+3. Update the `tagToCategoryMap` in migration logic if migrating from old data
+4. No other code changes required - visualization, breakdown, and projections will automatically use the new category
 
-### Modifying Category Colors
-Update the color value in the `CATEGORIES` object (lines 927-947). The entire app will use the new color automatically.
+### Modifying Category Rates
+Users can customize rates via the Settings UI, or developers can update the default rates in the `CATEGORIES` object. Rates are stored as decimals (0.10 = 10%).
 
-### Adding New Financial Calculations
-1. Update the data model in form submission handler (lines 779-800)
-2. Update display logic in `updateSummary()` (lines 912-936)
-3. Update visualization in `updateChart()` if visual representation needed
+### Projection Calculations
+- **Asset growth**: Uses compound interest formula with category growth rates
+- **Debt projection**: Uses proper amortization formulas accounting for monthly payments and payoff timelines
+- **Annual projections**: Shows estimated yearly earnings (assets) and costs (debts) based on current values
 
-### Modifying Sankey Visualization
-- Node positioning: Adjust sankey configuration (lines 1195-1199)
-- Grouping threshold: Modify line 1019 (currently 3% of total)
-- Label positioning: Update label logic (lines 1305-1368)
+## Deployment
+
+**GitHub Repository**: https://github.com/roblockwood/finance-analysis-tool
+**Live Site**: https://roblockwood.github.io/finance-analysis-tool/
+
+Deployed via GitHub Pages from the `gh-pages` branch.
